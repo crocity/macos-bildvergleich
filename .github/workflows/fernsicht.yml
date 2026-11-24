@@ -10,7 +10,7 @@ on:
         default: '90'
 jobs:
   fernsicht:
-    runs-on: macos-27
+    runs-on: xcode-27
     timeout-minutes: 200
     steps:
       - uses: actions/checkout@v4

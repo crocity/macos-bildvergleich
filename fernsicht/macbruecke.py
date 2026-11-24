@@ -44,8 +44,8 @@ class Strom:
         l = subprocess.run([FFMPEG, "-hide_banner", "-f", "avfoundation", "-list_devices", "true", "-i", ""], capture_output=True, text=True).stderr
         m = re.search(r"\[(\d+)\] Capture screen 0", l)
         if not m: raise RuntimeError("kein Bildschirm in der Geraeteliste")
-        p = subprocess.Popen([FFMPEG, "-hide_banner", "-loglevel", "error", "-f", "avfoundation", "-capture_cursor", "1", "-framerate", "30",
-                              "-pixel_format", "bgr0", "-i", m.group(1) + ":none", "-vf", "fps=30,scale=1920:-2", "-q:v", "7",
+        p = subprocess.Popen([FFMPEG, "-hide_banner", "-loglevel", "error", "-f", "avfoundation", "-capture_cursor", "1", "-framerate", "60",
+                              "-pixel_format", "bgr0", "-i", m.group(1) + ":none", "-vf", "fps=60,scale=1920:-2", "-q:v", "7",
                               "-f", "image2pipe", "-c:v", "mjpeg", "-"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
         self.art = "ffmpeg"; puffer = b""; t0 = time.time(); n = 0
         while True:
@@ -88,8 +88,8 @@ let a=null,zieht=false,letzt=0;
 b.addEventListener('contextmenu',e=>{e.preventDefault();const p=pos(e);hin(`/klick?x=${p[0]}&y=${p[1]}&art=rechts`)});
 b.addEventListener('pointerdown',e=>{if(e.button!==0)return;b.focus();b.setPointerCapture(e.pointerId);a=pos(e);zieht=false;e.preventDefault()});
 b.addEventListener('pointermove',e=>{const p=pos(e);if(a){if(!zieht&&Math.hypot((p[0]-a[0])*b.width,(p[1]-a[1])*b.height)>5){zieht=true;hin(`/maus?art=ab&x=${a[0]}&y=${a[1]}`)}
-  if(zieht&&Date.now()-letzt>45){letzt=Date.now();hin(`/maus?art=zieh&x=${p[0]}&y=${p[1]}`)}}
-  else if(Date.now()-letzt>90){letzt=Date.now();fetch(`/maus?art=hin&x=${p[0]}&y=${p[1]}`).catch(()=>{})}});
+  if(zieht&&Date.now()-letzt>16){letzt=Date.now();hin(`/maus?art=zieh&x=${p[0]}&y=${p[1]}`)}}
+  else if(Date.now()-letzt>25){letzt=Date.now();fetch(`/maus?art=hin&x=${p[0]}&y=${p[1]}`).catch(()=>{})}});
 b.addEventListener('pointerup',e=>{if(e.button!==0||!a)return;const p=pos(e);if(zieht)hin(`/maus?art=los&x=${p[0]}&y=${p[1]}`);else hin(`/klick?x=${a[0]}&y=${a[1]}&art=${e.detail>=2?'doppelt':'links'}`);a=null;zieht=false});
 let rad=0,radT=null;b.addEventListener('wheel',e=>{e.preventDefault();rad+=e.deltaY;clearTimeout(radT);radT=setTimeout(()=>{const p=pos(e);hin(`/rad?dy=${Math.round(-rad/3)}&x=${p[0]}&y=${p[1]}`);rad=0},40)},{passive:false});
 function taste(k){return hin('/taste?k='+encodeURIComponent(k))}

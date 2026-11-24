@@ -44,8 +44,8 @@ class Strom:
         l = subprocess.run([FFMPEG, "-hide_banner", "-f", "avfoundation", "-list_devices", "true", "-i", ""], capture_output=True, text=True).stderr
         m = re.search(r"\[(\d+)\] Capture screen 0", l)
         if not m: raise RuntimeError("kein Bildschirm in der Geraeteliste")
-        p = subprocess.Popen([FFMPEG, "-hide_banner", "-loglevel", "error", "-f", "avfoundation", "-capture_cursor", "1", "-framerate", "20",
-                              "-pixel_format", "bgr0", "-i", m.group(1) + ":none", "-vf", "fps=15,scale=1920:-2", "-q:v", "7",
+        p = subprocess.Popen([FFMPEG, "-hide_banner", "-loglevel", "error", "-f", "avfoundation", "-capture_cursor", "1", "-framerate", "30",
+                              "-pixel_format", "bgr0", "-i", m.group(1) + ":none", "-vf", "fps=30,scale=1920:-2", "-q:v", "7",
                               "-f", "image2pipe", "-c:v", "mjpeg", "-"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
         self.art = "ffmpeg"; puffer = b""; t0 = time.time(); n = 0
         while True:

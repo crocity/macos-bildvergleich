@@ -74,7 +74,7 @@ SEITE = """<!doctype html><meta charset=utf-8><title>Leih-Mac</title>
 button{font:inherit;padding:5px 9px;border-radius:7px;border:1px solid #3a3a40;background:#232328;color:#eee;cursor:pointer}button:hover{background:#2e2e35}
 #st{padding:4px 9px;border-radius:7px;background:#1f3a2c;color:#9be7b7}#s{color:#888;margin-left:auto}
 #rahmen{flex:1;min-height:0;position:relative;background:#000}
-#b{position:absolute;inset:0;margin:auto;max-width:100%;max-height:100%;cursor:crosshair;user-select:none;-webkit-user-drag:none;outline:none}</style>
+#b{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;cursor:crosshair;user-select:none;-webkit-user-drag:none;outline:none}</style>
 <div id=leiste><b>Leih-Mac · macOS 27</b><span id=st>verbindet…</span>
 <button onclick="taste('cmd+space')">Suche ⌘␣</button><button onclick="taste('cmd+tab')">Wechseln ⌘⇥</button>
 <button onclick="taste('cmd+q')">Beenden ⌘Q</button><button onclick="taste('cmd+w')">Schließen ⌘W</button><button onclick="taste('esc')">Esc</button>
@@ -83,7 +83,7 @@ button{font:inherit;padding:5px 9px;border-radius:7px;border:1px solid #3a3a40;b
 <script>
 const b=document.getElementById('b'),s=document.getElementById('s'),st=document.getElementById('st');
 let kette=Promise.resolve();const hin=u=>{kette=kette.then(()=>fetch(u).catch(()=>{}));return kette};
-function pos(e){const r=b.getBoundingClientRect();return[Math.min(1,Math.max(0,(e.clientX-r.left)/r.width)),Math.min(1,Math.max(0,(e.clientY-r.top)/r.height))]}
+function pos(e){const r=b.getBoundingClientRect(),W=b.naturalWidth||1920,H=b.naturalHeight||1080,s=Math.min(r.width/W,r.height/H),w=W*s,h=H*s,x0=r.left+(r.width-w)/2,y0=r.top+(r.height-h)/2;return[Math.min(1,Math.max(0,(e.clientX-x0)/w)),Math.min(1,Math.max(0,(e.clientY-y0)/h))]}
 let a=null,zieht=false,letzt=0;
 b.addEventListener('contextmenu',e=>{e.preventDefault();const p=pos(e);hin(`/klick?x=${p[0]}&y=${p[1]}&art=rechts`)});
 b.addEventListener('pointerdown',e=>{if(e.button!==0)return;b.focus();b.setPointerCapture(e.pointerId);a=pos(e);zieht=false;e.preventDefault()});
@@ -102,6 +102,7 @@ document.addEventListener('keydown',e=>{if(e.target.tagName==='BUTTON')return;
  if(e.key.length===1&&(e.ctrlKey||e.metaKey)){e.preventDefault();leeren();taste([...m,e.key.toLowerCase()].join('+'));return}
  if(e.key.length===1){e.preventDefault();puffer+=e.key;clearTimeout(t);t=setTimeout(leeren,120)}});
 let fotoLaeuft=false;async function foto(){if(fotoLaeuft)return;fotoLaeuft=true;fb.disabled=true;try{const r=await fetch('/foto');const bl=await r.blob();const u=URL.createObjectURL(bl);const l=document.createElement('a');l.href=u;l.download='leih-mac-'+new Date().toISOString().slice(11,19).replace(/:/g,'')+'.png';l.click();setTimeout(()=>URL.revokeObjectURL(u),4000);s.textContent='Bildschirmfoto gespeichert (Downloads)'}finally{setTimeout(()=>{fotoLaeuft=false;fb.disabled=false},800)}}
+setInterval(()=>{if(!b.naturalWidth){b.src='/strom?t='+Date.now()}},3000);/* WebKitGTK (Cloud-OS-Leihmac-Fenster) bleibt beim ersten Laden des MJPEG-Stroms manchmal schwarz (naturalWidth 0) -- dann neu verbinden. */
 setInterval(async()=>{try{const j=await(await fetch('/stand')).json();st.textContent='verbunden · '+j.bps.toFixed(0)+' Bilder/s';st.style.background='#1f3a2c'}catch(e){st.textContent='keine Verbindung';st.style.background='#4a2222'}},4000);
 </script>"""
 

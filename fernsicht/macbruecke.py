@@ -73,8 +73,8 @@ SEITE = """<!doctype html><meta charset=utf-8><title>Leih-Mac</title>
 #leiste{display:flex;gap:6px;align-items:center;padding:6px 8px;background:#19191d;flex:none;flex-wrap:wrap}
 button{font:inherit;padding:5px 9px;border-radius:7px;border:1px solid #3a3a40;background:#232328;color:#eee;cursor:pointer}button:hover{background:#2e2e35}
 #st{padding:4px 9px;border-radius:7px;background:#1f3a2c;color:#9be7b7}#s{color:#888;margin-left:auto}
-#rahmen{flex:1;min-height:0;display:grid;place-items:center;background:#000}
-#b{max-width:100%;max-height:100%;cursor:crosshair;user-select:none;-webkit-user-drag:none;outline:none}</style>
+#rahmen{flex:1;min-height:0;position:relative;background:#000}
+#b{position:absolute;inset:0;margin:auto;max-width:100%;max-height:100%;cursor:crosshair;user-select:none;-webkit-user-drag:none;outline:none}</style>
 <div id=leiste><b>Leih-Mac · macOS 27</b><span id=st>verbindet…</span>
 <button onclick="taste('cmd+space')">Suche ⌘␣</button><button onclick="taste('cmd+tab')">Wechseln ⌘⇥</button>
 <button onclick="taste('cmd+q')">Beenden ⌘Q</button><button onclick="taste('cmd+w')">Schließen ⌘W</button><button onclick="taste('esc')">Esc</button>

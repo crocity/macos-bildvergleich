@@ -34,6 +34,17 @@ jobs:
           echo "nachher: $(displayplacer list | grep -m1 '^Resolution')"
           killall Finder Dock SystemUIServer ControlCenter NotificationCenter 2>/dev/null || true
           sleep 6
+      - name: Bildschirmaufnahme einzeln pruefen (ohne Bruecke, mit echter Fehlermeldung)
+        continue-on-error: true
+        run: |
+          L=$(ffmpeg -hide_banner -f avfoundation -list_devices true -i "" 2>&1)
+          echo "$L" | grep -i "capture screen"
+          IDX=$(echo "$L" | grep -oE "\[[0-9]+\] Capture screen 0" | grep -oE "^\[[0-9]+" | tr -d '[')
+          echo "Index: $IDX"
+          ffmpeg -hide_banner -y -f avfoundation -capture_cursor 1 -framerate 10 -pixel_format bgr0 \
+            -i "$IDX:none" -t 2 -vf scale=320:-2 -frames:v 20 /tmp/test-%02d.jpg 2>&1 | tail -30
+          ls -la /tmp/test-*.jpg 2>&1 || echo "KEINE BILDER GESCHRIEBEN"
+          sqlite3 "$HOME/Library/Application Support/com.apple.TCC/TCC.db" "select client,auth_value from access where service='kTCCServiceScreenCapture'" 2>&1 || true
       - name: Bruecke starten und selbst pruefen
         run: |
           export BRUECKE_SCHLUESSEL=$(openssl rand -hex 24)

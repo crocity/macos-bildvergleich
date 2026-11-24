@@ -1,0 +1,73 @@
+# Leih-Mac zum Ansehen und Bedienen: startet die eigene Bedienbruecke (Bild + Klick + Tasten im Browser) und oeffnet
+# fuer die Dauer des Laufs einen Tunnel nach aussen. Die Bruecke nimmt nur Anfragen mit dem Laufschluessel an.
+# Der Mac haengt NICHT in unserem Netz. Startet NUR von Hand. Privates Projekt.
+name: Fernsicht
+on:
+  workflow_dispatch:
+    inputs:
+      minuten:
+        description: Wie lange der Mac offen bleibt
+        default: '90'
+jobs:
+  fernsicht:
+    runs-on: xcode-27
+    timeout-minutes: 200
+    steps:
+      - uses: actions/checkout@v4
+      - name: Werkzeug
+        run: |
+          brew install cliclick cloudflared ffmpeg >/dev/null 2>&1 || true
+          which cliclick cloudflared ffmpeg || true
+          python3 -m venv $HOME/bv && $HOME/bv/bin/pip -q install pyobjc-framework-Quartz 2>&1 | tail -1 || true
+          sudo pmset -a displaysleep 0 sleep 0 2>/dev/null || true
+      - name: Deutsch und 16:9 einstellen (ohne Abmelden)
+        continue-on-error: true
+        run: |
+          defaults write -g AppleLanguages -array de-DE en-US
+          defaults write -g AppleLocale -string de_DE
+          sudo defaults write /Library/Preferences/.GlobalPreferences AppleLanguages -array de-DE en-US || true
+          brew install displayplacer >/dev/null 2>&1 || true
+          ID=$(displayplacer list | awk -F': ' '/Persistent screen id/{print $2; exit}')
+          echo "Bildschirm $ID, vorher: $(displayplacer list | grep -m1 '^Resolution')"
+          displayplacer list | grep -E "mode [0-9]+: res:(1920x1080|1920x1200|2560x1440|1280x720|1600x900)" | head -8
+          displayplacer "id:$ID res:1920x1080 scaling:off" 2>&1 | tail -1 || displayplacer "id:$ID res:1920x1080" 2>&1 | tail -1 || true
+          echo "nachher: $(displayplacer list | grep -m1 '^Resolution')"
+          killall Finder Dock SystemUIServer ControlCenter NotificationCenter 2>/dev/null || true
+          sleep 6
+      - name: Bruecke starten und selbst pruefen
+        run: |
+          export BRUECKE_SCHLUESSEL=$(openssl rand -hex 24)
+          echo "$BRUECKE_SCHLUESSEL" > $HOME/schluessel
+          nohup $HOME/bv/bin/python fernsicht/macbruecke.py 8790 > $HOME/bruecke.log 2>&1 &
+          sleep 9; cat $HOME/bruecke.log
+          K="X-Bruecke: $BRUECKE_SCHLUESSEL"
+          curl -s -m 20 -H "$K" -o /tmp/probe.jpg -w "Bild %{http_code} %{size_download} Byte\n" http://127.0.0.1:8790/bild
+          sleep 4; curl -s -m 20 -H "$K" http://127.0.0.1:8790/stand; echo
+          curl -s -m 20 -H "$K" -o /dev/null -w "Klick %{http_code}\n" "http://127.0.0.1:8790/klick?x=0.5&y=0.5&art=links"
+          curl -s -m 20 -o /dev/null -w "ohne Schluessel %{http_code} (403 erwartet)\n" http://127.0.0.1:8790/stand
+      - name: Tunnel oeffnen
+        run: |
+          nohup cloudflared tunnel --no-autoupdate --url http://127.0.0.1:8790 > $HOME/tunnel.log 2>&1 &
+          for i in $(seq 1 30); do
+            U=$(grep -oE "https://[a-z0-9-]+\.trycloudflare\.com" $HOME/tunnel.log | head -1); [ -n "$U" ] && break; sleep 2
+          done
+          echo "Tunnel steht: $([ -n "$U" ] && echo ja || echo NEIN)"
+          mkdir -p $HOME/zugang && printf '%s\n%s\n' "$U" "$(cat $HOME/schluessel)" > $HOME/zugang/zugang.txt
+      - name: Zugang ablegen (nur fuer uns, privates Projekt)
+        uses: actions/upload-artifact@v4
+        with:
+          name: zugang
+          path: ~/zugang
+          retention-days: 1
+      - name: Offen halten
+        env:
+          MINUTEN: ${{ inputs.minuten }}
+        run: |
+          caffeinate -dimsu -t $(( MINUTEN * 60 + 60 )) >/dev/null 2>&1 &
+          echo "Offen fuer $MINUTEN Minuten."
+          sleep $(( MINUTEN * 60 ))
+      - name: Ende
+        if: always()
+        run: |
+          pkill cloudflared || true
+          tail -5 $HOME/bruecke.log || true

@@ -45,6 +45,25 @@ jobs:
             -i "$IDX:none" -t 2 -vf scale=320:-2 -frames:v 20 /tmp/test-%02d.jpg 2>&1 | tail -30 || true
           ls -la /tmp/test-*.jpg 2>&1 || echo "KEINE BILDER GESCHRIEBEN"
           sqlite3 "$HOME/Library/Application Support/com.apple.TCC/TCC.db" "select client,auth_value from access where service='kTCCServiceScreenCapture'" 2>&1 || true
+          # Weg 3 (24.11.): sind einzelne Bildschirmfotos (screencapture) echt? Zwei Fotos mit Aenderung dazwischen.
+          mkdir -p $HOME/fotos
+          screencapture -x -t png $HOME/fotos/a-schreibtisch.png 2>&1 || true
+          open -a Finder / || true; open -a "System Settings" || true; sleep 4
+          screencapture -x -t png $HOME/fotos/b-finder-einstellungen.png 2>&1 || true
+          ls -la $HOME/fotos; md5 $HOME/fotos/*.png 2>&1 || true
+          $HOME/bv/bin/python -c "
+          import Quartz,sys
+          img=Quartz.CGWindowListCreateImage(Quartz.CGRectInfinite,Quartz.kCGWindowListOptionOnScreenOnly,Quartz.kCGNullWindowID,Quartz.kCGWindowImageDefault)
+          print('Quartz-Bild:', None if img is None else (Quartz.CGImageGetWidth(img), Quartz.CGImageGetHeight(img)))
+          " 2>&1 || true
+      - name: Fotos ablegen
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: fotos
+          path: ~/fotos/
+          retention-days: 1
       - name: Bruecke starten und selbst pruefen
         run: |
           export BRUECKE_SCHLUESSEL=$(openssl rand -hex 24)

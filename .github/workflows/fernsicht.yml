@@ -75,6 +75,25 @@ jobs:
           name: fotos
           path: ~/fotos/
           retention-days: 1
+      - name: Isolierter Mini-Server (Diagnose 25.11.: schliesst DIESER Laeufer jeden Socket?)
+        continue-on-error: true
+        run: |
+          cat > $HOME/mini.py <<'PYEOF'
+          import http.server, socketserver, sys
+          class H(http.server.BaseHTTPRequestHandler):
+              def do_GET(self):
+                  self.send_response(200); self.send_header("Content-Length","2"); self.end_headers(); self.wfile.write(b"ok")
+          print("mini: vor Server-Bau", flush=True)
+          srv = socketserver.ThreadingTCPServer(("0.0.0.0", 8799), H)
+          print("mini: gebaut, Socket:", srv.socket.getsockname(), flush=True)
+          srv.serve_forever()
+          PYEOF
+          nohup $PY $HOME/mini.py > $HOME/mini.log 2>&1 &
+          MINI_PID=$!
+          sleep 5; cat $HOME/mini.log
+          echo "Mini lebt: $(kill -0 $MINI_PID 2>/dev/null && echo ja || echo NEIN)"
+          lsof -nP -iTCP:8799 2>&1 || echo "lsof: niemand auf 8799"
+          curl -s -m 10 -w " [http %{http_code}]\n" http://127.0.0.1:8799/ || echo "curl: kein Zugriff"
       - name: Bruecke starten und selbst pruefen
         run: |
           export BRUECKE_SCHLUESSEL=$(openssl rand -hex 24)

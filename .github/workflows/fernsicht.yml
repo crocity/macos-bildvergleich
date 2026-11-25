@@ -69,7 +69,10 @@ jobs:
           export BRUECKE_SCHLUESSEL=$(openssl rand -hex 24)
           echo "$BRUECKE_SCHLUESSEL" > $HOME/schluessel
           nohup $HOME/bv/bin/python fernsicht/macbruecke.py 8790 > $HOME/bruecke.log 2>&1 &
+          BRUECKE_PID=$!
           sleep 9; cat $HOME/bruecke.log
+          echo "Prozess lebt: $(kill -0 $BRUECKE_PID 2>/dev/null && echo ja || echo NEIN, exit $?)"
+          lsof -nP -iTCP:8790 -sTCP:LISTEN 2>&1 || echo "lsof: niemand hoert auf 8790"
           K="X-Bruecke: $BRUECKE_SCHLUESSEL"
           curl -s -m 20 -H "$K" -o /tmp/probe.jpg -w "Bild %{http_code} %{size_download} Byte\n" http://127.0.0.1:8790/bild
           sleep 4; curl -s -m 20 -H "$K" http://127.0.0.1:8790/stand; echo

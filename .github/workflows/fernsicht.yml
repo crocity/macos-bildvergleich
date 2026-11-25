@@ -75,7 +75,7 @@ jobs:
           name: fotos
           path: ~/fotos/
           retention-days: 1
-      - name: Isolierter Mini-Server (Diagnose 25.11.: schliesst DIESER Laeufer jeden Socket?)
+      - name: "Isolierter Mini-Server (Diagnose 25.11. -- schliesst DIESER Laeufer jeden Socket?)"
         continue-on-error: true
         run: |
           cat > $HOME/mini.py <<'PYEOF'

@@ -2,8 +2,8 @@
 """Bedienbruecke fuer den Leih-Mac (GitHub-Laeufer), 2. Fassung: fluessiger Bildstrom + Maus (klicken, ziehen in
 Echtzeit, Mausrad) + Tasten + Text + Bildschirmfoto in voller Schaerfe. Laeuft auf dem Mac in der angemeldeten
 Sitzung. Nimmt nur Anfragen mit der Kopfzeile X-Bruecke an. Schreibt nichts mit."""
-import json, os, queue, re, shutil, subprocess, sys, threading, time
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import json, os, queue, re, shutil, socketserver, subprocess, sys, threading, time
+from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
 CLICLICK = next((p for p in ("/opt/homebrew/bin/cliclick", "/usr/local/bin/cliclick") if os.path.exists(p)), "cliclick")
@@ -336,23 +336,16 @@ class H(BaseHTTPRequestHandler):
         if self.path != "/text" or n > 600: self.send_response(404); self.send_header("Content-Length", "0"); self.end_headers(); return
         cc("t:" + self.rfile.read(n).decode("utf-8", "replace")); self._ok()
 
+# Gefunden 25.11.2026: http.server.HTTPServer.server_bind() ruft socket.getfqdn(host) -- eine
+# Rueckwaerts-DNS-Aufloesung, die auf diesem Laeufer dauerhaft haengt (Server-Bau kam nie ueber
+# "vor Server-Bau" hinaus, keine Ausnahme, Socket blieb auf CLOSED statt LISTEN stehen). H()
+# braucht server_name/server_port nirgends -- deshalb socketserver.ThreadingTCPServer direkt
+# nehmen, OHNE den HTTPServer-Umweg, der diese Aufloesung erst einbaut.
+class Bruecke(socketserver.ThreadingTCPServer):
+    allow_reuse_address = True
+    daemon_threads = True
+
 if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8790
     print("Bruecke auf Port", port, "Schirm", BREITE, HOEHE, "ffmpeg", FFMPEG, "Quartz", bool(Quartz), flush=True)
-    # Diagnose 25.11.: Server-Bau in einer eigenen, unverlierbaren Datei absichern -- der Socket
-    # landete bisher im Zustand CLOSED statt LISTEN, bruecke.log zeigte aber nie eine Ausnahme
-    # (Verdacht: Ausnahme beim Bau/serve_forever, Traceback ging in der Puffer-/Absturzreihenfolge
-    # verloren). Diese Datei schreibt JEDE Zeile unverzueglich (buffering=1) und schliesst sofort.
-    try:
-        with open("/tmp/bruecke-fehler.txt", "w", buffering=1) as fehlerdatei:
-            fehlerdatei.write("vor Server-Bau\n")
-            srv = ThreadingHTTPServer(("0.0.0.0", port), H)
-            fehlerdatei.write("Server gebaut, Socket: " + str(srv.socket.getsockname()) + "\n")
-            fehlerdatei.write("serve_forever beginnt jetzt\n")
-        srv.serve_forever()
-    except BaseException as e:
-        import traceback
-        with open("/tmp/bruecke-fehler.txt", "a", buffering=1) as fehlerdatei:
-            fehlerdatei.write("AUSNAHME: " + repr(e) + "\n")
-            traceback.print_exc(file=fehlerdatei)
-        raise
+    Bruecke(("0.0.0.0", port), H).serve_forever()

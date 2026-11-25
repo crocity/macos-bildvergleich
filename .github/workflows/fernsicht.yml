@@ -75,25 +75,6 @@ jobs:
           name: fotos
           path: ~/fotos/
           retention-days: 1
-      - name: "Isolierter Mini-Server (Diagnose 25.11. -- schliesst DIESER Laeufer jeden Socket?)"
-        continue-on-error: true
-        run: |
-          cat > $HOME/mini.py <<'PYEOF'
-          import http.server, socketserver, sys
-          class H(http.server.BaseHTTPRequestHandler):
-              def do_GET(self):
-                  self.send_response(200); self.send_header("Content-Length","2"); self.end_headers(); self.wfile.write(b"ok")
-          print("mini: vor Server-Bau", flush=True)
-          srv = socketserver.ThreadingTCPServer(("0.0.0.0", 8799), H)
-          print("mini: gebaut, Socket:", srv.socket.getsockname(), flush=True)
-          srv.serve_forever()
-          PYEOF
-          nohup $HOME/bv/bin/python $HOME/mini.py > $HOME/mini.log 2>&1 &
-          MINI_PID=$!
-          sleep 5; cat $HOME/mini.log
-          echo "Mini lebt: $(kill -0 $MINI_PID 2>/dev/null && echo ja || echo NEIN)"
-          lsof -nP -iTCP:8799 2>&1 || echo "lsof: niemand auf 8799"
-          curl -s -m 10 -w " [http %{http_code}]\n" http://127.0.0.1:8799/ || echo "curl: kein Zugriff"
       - name: Bruecke starten und selbst pruefen
         run: |
           export BRUECKE_SCHLUESSEL=$(openssl rand -hex 24)
@@ -102,11 +83,7 @@ jobs:
           BRUECKE_PID=$!
           sleep 9; cat $HOME/bruecke.log
           echo "Prozess lebt: $(kill -0 $BRUECKE_PID 2>/dev/null && echo ja || echo NEIN, exit $?)"
-          echo "Eigene Fehlerdatei:"; cat /tmp/bruecke-fehler.txt 2>&1 || echo "(keine Datei)"
-          echo "Prozessbaum:"; ps -o pid,ppid,stat,command -p $BRUECKE_PID 2>&1 || true
-          echo "Offene Sockets/Dateien dieses PID:"; lsof -nP -p $BRUECKE_PID 2>&1 || echo "lsof -p: nichts/keine Rechte"
-          echo "Wer haelt Port 8790 (alle Zustaende):"; lsof -nP -iTCP:8790 2>&1 || echo "lsof: niemand auf 8790, kein Zustand"
-          echo "py_spy-Stich (falls vorhanden):"; (sudo -n py-spy dump --pid $BRUECKE_PID 2>&1 || pip3 -q install py-spy 2>/dev/null && sudo -n py-spy dump --pid $BRUECKE_PID 2>&1) || echo "py-spy nicht verfuegbar"
+          lsof -nP -iTCP:8790 2>&1 || echo "lsof: niemand auf 8790, kein Zustand"
           K="X-Bruecke: $BRUECKE_SCHLUESSEL"
           curl -s -m 20 -H "$K" -o /tmp/probe.jpg -w "Bild %{http_code} %{size_download} Byte\n" http://127.0.0.1:8790/bild
           sleep 4; curl -s -m 20 -H "$K" http://127.0.0.1:8790/stand; echo

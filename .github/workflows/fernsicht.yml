@@ -23,9 +23,9 @@ jobs:
           # Erst eine aeltere, erprobte Fassung versuchen (3.13/3.12), sonst Rueckfall auf das Standard-python3.
           PY=python3
           for v in python3.13 python3.12; do
-            P=$(brew --prefix python@${v#python3.} 2>/dev/null)/bin/$v
-            if [ -x "$P" ]; then PY=$P; break; fi
-            command -v $v >/dev/null 2>&1 && { PY=$v; break; }
+            PRE=$(brew --prefix python@${v#python3.} 2>/dev/null || true)
+            if [ -n "$PRE" ] && [ -x "$PRE/bin/$v" ]; then PY="$PRE/bin/$v"; break; fi
+            if command -v $v >/dev/null 2>&1; then PY=$v; break; fi
           done
           echo "Gewaehltes Python fuer die Bruecke: $PY ($($PY --version 2>&1))"
           echo "PYTHON_FUER_BRUECKE=$PY" >> "$GITHUB_ENV"

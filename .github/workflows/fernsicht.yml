@@ -102,6 +102,7 @@ jobs:
           BRUECKE_PID=$!
           sleep 9; cat $HOME/bruecke.log
           echo "Prozess lebt: $(kill -0 $BRUECKE_PID 2>/dev/null && echo ja || echo NEIN, exit $?)"
+          echo "Eigene Fehlerdatei:"; cat /tmp/bruecke-fehler.txt 2>&1 || echo "(keine Datei)"
           echo "Prozessbaum:"; ps -o pid,ppid,stat,command -p $BRUECKE_PID 2>&1 || true
           echo "Offene Sockets/Dateien dieses PID:"; lsof -nP -p $BRUECKE_PID 2>&1 || echo "lsof -p: nichts/keine Rechte"
           echo "Wer haelt Port 8790 (alle Zustaende):"; lsof -nP -iTCP:8790 2>&1 || echo "lsof: niemand auf 8790, kein Zustand"

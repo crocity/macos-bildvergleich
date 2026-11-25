@@ -155,7 +155,14 @@ class H264Strom:
                 else:
                     aktuell.append(nal)
             if start: puffer = puffer[start[-1]:]
-h264strom = H264Strom()
+class _H264Aus:
+    """Diagnose (25.11.2026, Lauf haengt seit der 60-fps/H264-Aenderung): BRUECKE_H264=0 startet den
+    zweiten, GLEICHZEITIGEN Bildschirmgriff gar nicht erst -- testet, ob zwei parallele avfoundation-
+    Erfassungen (Strom oben + H264Strom) sich auf dem virtualisierten Laeufer blockieren."""
+    codec = ""; bps = 0.0
+    def abonnieren(self): return queue.Queue()
+    def abbestellen(self, q): pass
+h264strom = H264Strom() if os.environ.get("BRUECKE_H264", "1") != "0" else _H264Aus()
 
 SEITE = """<!doctype html><meta charset=utf-8><title>Leih-Mac</title>
 <style>*{box-sizing:border-box}body{margin:0;background:#101013;color:#ddd;font:13px system-ui;height:100vh;display:flex;flex-direction:column;overflow:hidden}

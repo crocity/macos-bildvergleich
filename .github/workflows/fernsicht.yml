@@ -18,7 +18,18 @@ jobs:
         run: |
           brew install cliclick cloudflared ffmpeg >/dev/null 2>&1 || true
           which cliclick cloudflared ffmpeg || true
-          python3 -m venv $HOME/bv && $HOME/bv/bin/pip -q install pyobjc-framework-Quartz 2>&1 | tail -1 || true
+          python3 --version
+          # Diagnose 25.11.: Socket existierte, Zustand CLOSED statt LISTEN, auf python@3.15.2 (brandneu).
+          # Erst eine aeltere, erprobte Fassung versuchen (3.13/3.12), sonst Rueckfall auf das Standard-python3.
+          PY=python3
+          for v in python3.13 python3.12; do
+            P=$(brew --prefix python@${v#python3.} 2>/dev/null)/bin/$v
+            if [ -x "$P" ]; then PY=$P; break; fi
+            command -v $v >/dev/null 2>&1 && { PY=$v; break; }
+          done
+          echo "Gewaehltes Python fuer die Bruecke: $PY ($($PY --version 2>&1))"
+          echo "PYTHON_FUER_BRUECKE=$PY" >> "$GITHUB_ENV"
+          $PY -m venv $HOME/bv && $HOME/bv/bin/pip -q install pyobjc-framework-Quartz 2>&1 | tail -1 || true
           sudo pmset -a displaysleep 0 sleep 0 2>/dev/null || true
       - name: Deutsch und 16:9 einstellen (ohne Abmelden)
         continue-on-error: true
@@ -68,7 +79,6 @@ jobs:
         run: |
           export BRUECKE_SCHLUESSEL=$(openssl rand -hex 24)
           echo "$BRUECKE_SCHLUESSEL" > $HOME/schluessel
-          export BRUECKE_H264=0   # Diagnose 25.11.: zweiten, gleichzeitigen Bildschirmgriff abschalten
           nohup $HOME/bv/bin/python fernsicht/macbruecke.py 8790 > $HOME/bruecke.log 2>&1 &
           BRUECKE_PID=$!
           sleep 9; cat $HOME/bruecke.log

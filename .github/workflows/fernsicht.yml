@@ -75,6 +75,10 @@ jobs:
           name: fotos
           path: ~/fotos/
           retention-days: 1
+      - name: "Erscheinungsbild dunkel (Daniel 25.11.2026)"
+        continue-on-error: true
+        run: |
+          osascript -e 'tell application "System Events" to tell appearance preferences to set dark mode to true' || defaults write -g AppleInterfaceStyle Dark
       - name: Bruecke starten und selbst pruefen
         run: |
           export BRUECKE_SCHLUESSEL=$(openssl rand -hex 24)

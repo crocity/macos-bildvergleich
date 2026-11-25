@@ -88,7 +88,7 @@ jobs:
           print("mini: gebaut, Socket:", srv.socket.getsockname(), flush=True)
           srv.serve_forever()
           PYEOF
-          nohup $PY $HOME/mini.py > $HOME/mini.log 2>&1 &
+          nohup $HOME/bv/bin/python $HOME/mini.py > $HOME/mini.log 2>&1 &
           MINI_PID=$!
           sleep 5; cat $HOME/mini.log
           echo "Mini lebt: $(kill -0 $MINI_PID 2>/dev/null && echo ja || echo NEIN)"

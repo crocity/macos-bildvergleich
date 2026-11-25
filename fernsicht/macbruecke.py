@@ -48,6 +48,18 @@ class Strom:
                               "-pixel_format", "bgr0", "-i", m.group(1) + ":none", "-vf", "fps=60,scale=1920:-2", "-q:v", "7",
                               "-f", "image2pipe", "-c:v", "mjpeg", "-"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
         self.art = "ffmpeg"; puffer = b""; t0 = time.time(); n = 0
+        # 25.11.2026: Wachhund. Liefert ffmpeg (avfoundation) kein Bild, blockierte read() hier fuer immer,
+        # der Rueckfall screencapture kam nie dran -> Fenster schwarz, "0 Bilder/s". Kein neues Bild in
+        # 8 s -> ffmpeg beenden, read() endet leer, lauf() faellt auf langsam() zurueck.
+        def wachhund():
+            letzte, seit = -1, time.time()
+            while p.poll() is None:
+                time.sleep(2)
+                if self.nr != letzte: letzte, seit = self.nr, time.time()
+                elif time.time() - seit > 8:
+                    print("ffmpeg-Strom: 8 s kein Bild, Rueckfall auf screencapture", flush=True)
+                    p.kill(); return
+        threading.Thread(target=wachhund, daemon=True).start()
         while True:
             st = p.stdout.read(65536)
             if not st:

@@ -339,4 +339,20 @@ class H(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8790
     print("Bruecke auf Port", port, "Schirm", BREITE, HOEHE, "ffmpeg", FFMPEG, "Quartz", bool(Quartz), flush=True)
-    ThreadingHTTPServer(("0.0.0.0", port), H).serve_forever()
+    # Diagnose 25.11.: Server-Bau in einer eigenen, unverlierbaren Datei absichern -- der Socket
+    # landete bisher im Zustand CLOSED statt LISTEN, bruecke.log zeigte aber nie eine Ausnahme
+    # (Verdacht: Ausnahme beim Bau/serve_forever, Traceback ging in der Puffer-/Absturzreihenfolge
+    # verloren). Diese Datei schreibt JEDE Zeile unverzueglich (buffering=1) und schliesst sofort.
+    try:
+        with open("/tmp/bruecke-fehler.txt", "w", buffering=1) as fehlerdatei:
+            fehlerdatei.write("vor Server-Bau\n")
+            srv = ThreadingHTTPServer(("0.0.0.0", port), H)
+            fehlerdatei.write("Server gebaut, Socket: " + str(srv.socket.getsockname()) + "\n")
+            fehlerdatei.write("serve_forever beginnt jetzt\n")
+        srv.serve_forever()
+    except BaseException as e:
+        import traceback
+        with open("/tmp/bruecke-fehler.txt", "a", buffering=1) as fehlerdatei:
+            fehlerdatei.write("AUSNAHME: " + repr(e) + "\n")
+            traceback.print_exc(file=fehlerdatei)
+        raise

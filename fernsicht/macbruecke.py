@@ -44,7 +44,7 @@ class Strom:
         l = subprocess.run([FFMPEG, "-hide_banner", "-f", "avfoundation", "-list_devices", "true", "-i", ""], capture_output=True, text=True).stderr
         m = re.search(r"\[(\d+)\] Capture screen 0", l)
         if not m: raise RuntimeError("kein Bildschirm in der Geraeteliste")
-        p = subprocess.Popen([FFMPEG, "-hide_banner", "-loglevel", "error", "-f", "avfoundation", "-capture_cursor", "1", "-framerate", "60",
+        p = subprocess.Popen([FFMPEG, "-hide_banner", "-loglevel", "error", "-f", "avfoundation", "-capture_cursor", "0", "-framerate", "60",
                               "-pixel_format", "bgr0", "-i", m.group(1) + ":none", "-vf", "fps=60,scale=1920:-2", "-q:v", "7",
                               "-f", "image2pipe", "-c:v", "mjpeg", "-"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
         self.art = "ffmpeg"; puffer = b""; t0 = time.time(); n = 0
@@ -73,7 +73,9 @@ class Strom:
     def langsam(self):
         self.art = "screencapture"; t0 = time.time(); n = 0
         while True:
-            subprocess.run(["screencapture", "-x", "-C", "-t", "jpg", "/tmp/macbruecke.jpg"], timeout=15)
+            # 25.11.2026: ohne -C -- der Mac-Zeiger im Bild hinkte bei ~6 Bildern/s dem eigenen Zeiger sichtbar hinterher
+            # (Daniel: "stark versetzt"); gemessen trifft die Umrechnung auf 2 px, sichtbar ist jetzt nur der eigene Zeiger.
+            subprocess.run(["screencapture", "-x", "-t", "jpg", "/tmp/macbruecke.jpg"], timeout=15)
             try: self.setze(open("/tmp/macbruecke.jpg", "rb").read())
             except Exception: pass
             n += 1
@@ -182,7 +184,7 @@ SEITE = """<!doctype html><meta charset=utf-8><title>Leih-Mac</title>
 button{font:inherit;padding:5px 9px;border-radius:7px;border:1px solid #3a3a40;background:#232328;color:#eee;cursor:pointer}button:hover{background:#2e2e35}
 #st{padding:4px 9px;border-radius:7px;background:#1f3a2c;color:#9be7b7}#s{color:#888;margin-left:auto}
 #rahmen{flex:1;min-height:0;position:relative;background:#000;outline:none}
-#b,#cv{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;cursor:crosshair;user-select:none;-webkit-user-drag:none}
+#b,#cv{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;cursor:default;user-select:none;-webkit-user-drag:none}
 #b{display:none}#cv{display:none}</style>
 <div id=leiste><b>Leih-Mac · macOS 27</b><span id=st>verbindet…</span>
 <button onclick="taste('cmd+space')">Suche ⌘␣</button><button onclick="taste('cmd+tab')">Wechseln ⌘⇥</button>

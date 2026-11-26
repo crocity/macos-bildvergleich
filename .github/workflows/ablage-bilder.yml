@@ -1,0 +1,83 @@
+# Vergleichsbilder macOS 27: Downloads-Stapel im Dock (Faecher/Raster/Liste + Rechtsklick) und
+# Zwischenablage-Verlauf in Spotlight (Cmd+Leertaste, Cmd+4). Daniel 26.11.2026: "zeig Bilder ... vom Leih-Mac".
+# Nur lesen/fotografieren, keine Geheimnisse.
+name: Ablage-Bilder
+on:
+  workflow_dispatch:
+jobs:
+  bilder:
+    runs-on: xcode-27
+    timeout-minutes: 25
+    steps:
+      - name: Einrichten (Deutsch, 1920x1080, dunkel)
+        run: |
+          brew install cliclick displayplacer >/dev/null 2>&1 || true
+          defaults write -g AppleLanguages -array de-DE en-US
+          sudo defaults write /Library/Preferences/.GlobalPreferences AppleLanguages -array de-DE en-US || true
+          ID=$(displayplacer list | awk -F': ' '/Persistent screen id/{print $2; exit}')
+          displayplacer "id:$ID res:1920x1080 scaling:off" 2>&1 | tail -1 || displayplacer "id:$ID res:1920x1080" || true
+          osascript -e 'tell application "System Events" to tell appearance preferences to set dark mode to true' || defaults write -g AppleInterfaceStyle Dark
+          killall Finder Dock SystemUIServer ControlCenter NotificationCenter 2>/dev/null || true
+          sleep 6
+          mkdir -p $HOME/aus
+      - name: Downloads fuellen (echte Dateiarten)
+        run: |
+          D=$HOME/Downloads; mkdir -p $D; cd $D
+          screencapture -x "Bildschirmfoto 2026-11-26 um 18.20.12.png"; sleep 1
+          screencapture -x -t jpg "Urlaub Kroatien.jpg"; sleep 1
+          sips -s format pdf "Urlaub Kroatien.jpg" --out "Rechnung November.pdf" >/dev/null 2>&1 || true
+          printf 'Einkaufsliste\nMilch\nBrot\n' > "Einkaufsliste.txt"
+          mkdir -p "Fotos Zlatko"; cp "Urlaub Kroatien.jpg" "Fotos Zlatko/" ; zip -qr "Projekt.zip" "Fotos Zlatko"
+          cp "Bildschirmfoto 2026-11-26 um 18.20.12.png" "Logo FirmX.png"
+          touch -A -000100 * 2>/dev/null || true
+          ls -la
+      - name: Downloads-Stapel fotografieren (Faecher, Raster, Liste, Rechtsklick)
+        run: |
+          cat > $HOME/stapel.py <<'PY'
+          import plistlib, subprocess, sys, os, time
+          p = os.path.expanduser("~/Library/Preferences/com.apple.dock.plist")
+          subprocess.run(["defaults", "export", "com.apple.dock", p + ".x"], check=True)
+          d = plistlib.load(open(p + ".x", "rb"))
+          showas = int(sys.argv[1])
+          for t in d.get("persistent-others", []):
+              td = t.get("tile-data", {})
+              if "Downloads" in str(td.get("file-label", "")) or "Downloads" in str(td.get("file-data", {})):
+                  td["showas"] = showas; td["arrangement"] = 2; td["displayas"] = 0
+          plistlib.dump(d, open(p + ".x", "wb"))
+          subprocess.run(["defaults", "import", "com.apple.dock", p + ".x"], check=True)
+          PY
+          klick='tell application "System Events" to tell process "Dock" to click (first UI element of list 1 whose name contains "Download")'
+          for art in 1:faecher 2:raster 3:liste; do
+            n=${art%%:*}; name=${art##*:}
+            python3 $HOME/stapel.py $n; killall Dock; sleep 5
+            osascript -e "$klick" || true; sleep 2.5
+            screencapture -x $HOME/aus/stapel-$name.png
+            osascript -e 'tell application "System Events" to key code 53' || true; sleep 1
+          done
+          python3 $HOME/stapel.py 2; killall Dock; sleep 5
+          osascript -e 'tell application "System Events" to tell process "Dock" to perform action "AXShowMenu" of (first UI element of list 1 whose name contains "Download")' || true
+          sleep 2; screencapture -x $HOME/aus/stapel-rechtsklick.png
+          osascript -e 'tell application "System Events" to key code 53' || true
+      - name: Zwischenablage-Verlauf in Spotlight fotografieren
+        run: |
+          for t in "Rechnung Nr. 2026-1142" "https://ai.crocity.de/ivana" "Treffen morgen 10 Uhr bei Zlatko" "daniel@firmx.de" "Einkaufsliste: Milch, Brot, Kaffee"; do
+            printf '%s' "$t" | pbcopy; sleep 1.5; done
+          osascript -e 'set the clipboard to (read (POSIX file "'"$HOME"'/Downloads/Logo FirmX.png") as «class PNGf»)' || true; sleep 1.5
+          osascript -e 'tell application "System Events" to keystroke space using command down'; sleep 2
+          screencapture -x $HOME/aus/spotlight-leer.png
+          osascript -e 'tell application "System Events" to keystroke "4" using command down'; sleep 2.5
+          screencapture -x $HOME/aus/spotlight-zwischenablage.png
+          # Erst-Nachfrage "Zwischenablage-Ergebnisse erlauben?" bestaetigen, falls sie kommt, und noch einmal fotografieren
+          osascript -e 'tell application "System Events" to keystroke return' || true; sleep 2
+          for t in "Rechnung Nr. 2026-1142" "https://ai.crocity.de/ivana" "Treffen morgen 10 Uhr bei Zlatko"; do printf '%s' "$t" | pbcopy; sleep 1.5; done
+          osascript -e 'tell application "System Events" to key code 53'; sleep 1
+          osascript -e 'tell application "System Events" to keystroke space using command down'; sleep 2
+          osascript -e 'tell application "System Events" to keystroke "4" using command down'; sleep 2.5
+          screencapture -x $HOME/aus/spotlight-zwischenablage-2.png
+          ls -la $HOME/aus
+      - name: Hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ablage-bilder
+          path: ~/aus

@@ -32,6 +32,7 @@ jobs:
           touch -A -000100 * 2>/dev/null || true
           ls -la
       - name: Downloads-Stapel fotografieren (Faecher, Raster, Liste, Rechtsklick)
+        if: false
         run: |
           cat > $HOME/stapel.py <<'PY'
           import plistlib, subprocess, sys, os, time
@@ -63,6 +64,11 @@ jobs:
           for t in "Rechnung Nr. 2026-1142" "https://ai.crocity.de/ivana" "Treffen morgen 10 Uhr bei Zlatko" "daniel@firmx.de" "Einkaufsliste: Milch, Brot, Kaffee"; do
             printf '%s' "$t" | pbcopy; sleep 1.5; done
           osascript -e 'set the clipboard to (read (POSIX file "'"$HOME"'/Downloads/Logo FirmX.png") as «class PNGf»)' || true; sleep 1.5
+          # Erststart: Einfuehrungsdialog ("Continue") wegklicken, dann neu oeffnen
+          osascript -e 'tell application "System Events" to keystroke space using command down'; sleep 3
+          screencapture -x $HOME/aus/spotlight-einfuehrung.png
+          osascript -e 'tell application "System Events" to keystroke return'; sleep 2
+          osascript -e 'tell application "System Events" to key code 53'; sleep 1
           osascript -e 'tell application "System Events" to keystroke space using command down'; sleep 2
           screencapture -x $HOME/aus/spotlight-leer.png
           osascript -e 'tell application "System Events" to keystroke "4" using command down'; sleep 2.5

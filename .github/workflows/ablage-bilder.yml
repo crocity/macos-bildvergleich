@@ -67,7 +67,11 @@ jobs:
           # Erststart: Einfuehrungsdialog ("Continue") wegklicken, dann neu oeffnen
           osascript -e 'tell application "System Events" to keystroke space using command down'; sleep 3
           screencapture -x $HOME/aus/spotlight-einfuehrung.png
-          cliclick c:960,645; sleep 2   # Knopf "Continue" (Return wirkt nicht, Fokus liegt im Suchfeld)
+          # Knopf "Continue": cliclick wirkte nicht (Lauf 45873585698), Tasten ueber System Events schon -> UI-Skripting
+          osascript -e 'tell application "System Events" to tell process "Spotlight" to click (first button of entire contents of window 1 whose name is "Continue")' || \
+          osascript -e 'tell application "System Events" to tell process "Spotlight" to get name of every UI element of entire contents of window 1' > $HOME/aus/spotlight-elemente.txt 2>&1 || true
+          sleep 2
+          osascript -e 'tell application "System Events" to keystroke tab' ; osascript -e 'tell application "System Events" to keystroke space'; sleep 2
           osascript -e 'tell application "System Events" to key code 53'; sleep 1
           osascript -e 'tell application "System Events" to keystroke space using command down'; sleep 2
           screencapture -x $HOME/aus/spotlight-leer.png

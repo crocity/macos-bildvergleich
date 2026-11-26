@@ -67,7 +67,7 @@ jobs:
           # Erststart: Einfuehrungsdialog ("Continue") wegklicken, dann neu oeffnen
           osascript -e 'tell application "System Events" to keystroke space using command down'; sleep 3
           screencapture -x $HOME/aus/spotlight-einfuehrung.png
-          osascript -e 'tell application "System Events" to keystroke return'; sleep 2
+          cliclick c:960,645; sleep 2   # Knopf "Continue" (Return wirkt nicht, Fokus liegt im Suchfeld)
           osascript -e 'tell application "System Events" to key code 53'; sleep 1
           osascript -e 'tell application "System Events" to keystroke space using command down'; sleep 2
           screencapture -x $HOME/aus/spotlight-leer.png
